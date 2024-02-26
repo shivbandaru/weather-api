@@ -6,5 +6,5 @@ import (
 )
 
 type Usecase interface {
-	GetWeather(ctx context.Context, lat, lon float64) (resp *models.WeatherData, err error)
+	GetWeather(ctx context.Context, lat, lon float64, appid string) (resp *models.WeatherData, err error)
 }

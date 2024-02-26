@@ -16,8 +16,7 @@ type ServerConfig struct {
 }
 
 type OpenWeatherConfig struct {
-	Url    string `mapstructure:"Url"`
-	ApiKey string `mapstructure:"ApiKey"`
+	Url string `mapstructure:"Url"`
 }
 
 func LoadConfig(path string) (config MainConfig) {

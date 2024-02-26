@@ -20,18 +20,21 @@ func NewWeatherUsecase(cfg *config.MainConfig) *usecase {
 	return &usecase{cfg: cfg}
 }
 
-func (u *usecase) GetWeather(ctx context.Context, lat, lon float64) (resp *models.WeatherData, err error) {
+func (u *usecase) GetWeather(ctx context.Context, lat, lon float64, appid string) (resp *models.WeatherData, err error) {
 
-	//Get the API Key
-	apiKey := u.cfg.OpenWeather.ApiKey
 	// Construct the API URL reference https://openweathermap.org/current - API call section
-	url := u.cfg.OpenWeather.Url + fmt.Sprintf("?lat=%.6f&lon=%.6f&appid=%s&units=imperial", lat, lon, apiKey)
+	url := u.cfg.OpenWeather.Url + fmt.Sprintf("?lat=%.6f&lon=%.6f&appid=%s&units=imperial", lat, lon, appid)
 
 	// Send HTTP GET request to the API
 	response, err := http.Get(url)
 	if err != nil {
-		logger.Log.ErrorC(ctx, fmt.Sprintf("HTTP request failed: %v", err))
+		logger.Log.ErrorC(ctx, fmt.Sprintf("HTTP request failed with error: %v", err))
 		return nil, err
+	}
+
+	if response.StatusCode != 200 {
+		logger.Log.ErrorC(ctx, fmt.Sprintf("Non-OK response recieved from open weather api , status code : %d", response.StatusCode))
+		return nil, fmt.Errorf(fmt.Sprintf("Non-OK:%d", response.StatusCode))
 	}
 	defer response.Body.Close()
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"weather-api/exception"
 	"weather-api/logger"
 	"weather-api/models"
@@ -32,12 +33,20 @@ func (h *apiHandler) GetWeather(c echo.Context) error {
 
 	latString := c.QueryParam("lat")
 	lonString := c.QueryParam("lon")
+	appid := c.QueryParam("appid")
 
 	if len(latString) == 0 || len(lonString) == 0 {
 		logger.Log.ErrorC(ctx, fmt.Sprintf("Field validation error: lat: %s, lon: %s", latString, lonString))
 		c.JSON(http.StatusBadRequest, exception.NewError(http.StatusBadRequest, "both lat, lon fields are mandatory"))
 		return nil
 
+	}
+
+	//apikey validation
+	if len(appid) == 0 {
+		logger.Log.ErrorC(ctx, fmt.Sprintf("Field validation error: appid is mandatory, appid: %s", appid))
+		c.JSON(http.StatusBadRequest, exception.NewError(http.StatusBadRequest, "appid is mandatory"))
+		return nil
 	}
 
 	// Parse latitude and longitude from the request URL query parameters
@@ -56,11 +65,25 @@ func (h *apiHandler) GetWeather(c echo.Context) error {
 		return nil
 	}
 
-	logger.Log.InfoC(ctx, fmt.Sprintf("Incoming Request: Latitude:%.6f, Longitude:%.6f", lat, lon))
+	weatherInfo, err := h.forecastUC.GetWeather(ctx, lat, lon, appid)
 
-	weatherInfo, err := h.forecastUC.GetWeather(ctx, lat, lon)
+	//Below Code check the status code on the open api response and act accordingly , this needs to be revisited
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, exception.NewError(http.StatusInternalServerError, err.Error()))
+		if strings.Contains(err.Error(), "Non-OK:") {
+			switch strings.SplitAfter(err.Error(), ":")[1] {
+			case "401":
+				c.JSON(http.StatusUnauthorized, exception.NewError(http.StatusUnauthorized, "Unauthorized"))
+			case "400":
+				c.JSON(http.StatusBadRequest, exception.NewError(http.StatusBadRequest, "Invalid Input"))
+			case "429":
+				c.JSON(http.StatusTooManyRequests, exception.NewError(http.StatusTooManyRequests, "Too Many Requests"))
+			default:
+				c.JSON(http.StatusInternalServerError, exception.NewError(http.StatusInternalServerError, "Unknown Error"))
+			}
+
+		} else {
+			c.JSON(http.StatusInternalServerError, exception.NewError(http.StatusInternalServerError, err.Error()))
+		}
 		return nil
 	}
 
