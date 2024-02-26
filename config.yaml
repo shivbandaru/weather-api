@@ -1,0 +1,6 @@
+Server:
+  Address: ":8080"
+
+OpenWeather:
+  Url: "https://api.openweathermap.org/data/2.5/weather"
+  ApiKey: "346f820b8b57367bb052d099256c939d"
